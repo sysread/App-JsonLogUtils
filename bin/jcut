@@ -1,0 +1,79 @@
+#!perl
+# PODNAME: jcut
+
+use strict;
+use warnings;
+use Getopt::Long;
+use Pod::Usage;
+use JSON::XS qw(decode_json encode_json);
+
+my $help = 0;
+my $inverse = 0;
+my $fields;
+
+GetOptions(
+  'help'       => \$help,
+  'fields=s'   => \$fields,
+  'complement' => \$inverse,
+) or pod2usage(2);
+
+if ($help) {
+  pod2usage(1);
+  exit 0;
+}
+
+my @fields = split /\s+/, $fields;
+
+sub run {
+  my $fh = shift;
+
+  while (defined(my $line = <$fh>)) {
+    my $object = decode_json $line;
+
+    if ($inverse) {
+      delete $object->{$_} foreach @fields;
+      print encode_json($object), "\n";
+    } else {
+      my %filtered;
+      $filtered{$_} = $object->{$_} foreach @fields;
+      print encode_json(\%filtered), "\n";
+    }
+  }
+}
+
+$| = 1;
+
+if (@ARGV) {
+  while (my $path = shift @ARGV) {
+    open my $fh, '<', $path || die $!;
+    run $fh;
+  }
+}
+else {
+  run \*STDIN;
+}
+
+exit 0;
+
+=head1 SYNOPSIS
+
+  jcut --field "field1 field2 field3 ..." [--complement] [/path/to/file1 /path/to/file2 ...]
+
+=head1 DESCRIPTION
+
+Outputs JSON objects with only the selected fields from JSON-formatted line
+input from supplied file path(s) or standard input if not provided.
+
+=head1 OPTIONS
+
+=head2 --fields | -f
+
+Selects one or more fields to be included in the reformatted JSON output line.
+Multiple fields are separated with a space.
+
+=head2 --complement | -c
+
+Inverts the meaning of C<--fields>, including all object keys except for those
+specified by C<--fields>.
+
+=cut

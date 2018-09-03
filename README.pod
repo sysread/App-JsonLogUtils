@@ -1,0 +1,57 @@
+=pod
+
+=encoding UTF-8
+
+=head1 NAME
+
+App::JsonLogUtils - Command line utilities for dealing with JSON-formatted log files
+
+=head1 VERSION
+
+version 0.01
+
+=head1 SYNOPSIS
+
+  tail -f /path/to/log/file.log \
+    | jgrep -m message="some pattern" \
+    | jcut -f "timestamp priority message" \
+    | cols -c "timestamp priority message" -s '|' \
+    | column -t -s '|'
+
+=head1 DESCRIPTION
+
+Writing logs in JSON, one object per line, makes them very easily machine
+readable. Wonderful. Unfortunately, it also makes it unfuriating to deal with
+them using the standard unix command line tools. This package provides a few
+tools to salve the burn.
+
+=head1 TOOLS
+
+=head2 L<jgrep>
+
+Greps patterns in individual object fields.
+
+=head2 L<jcut>
+
+Filter the fields included in objects.
+
+=head2 L<jcols>
+
+Display fields in a format suitable for C<column>.
+
+=head1 FUTURE PLANS
+
+None, but will happily consider requests and patches.
+
+=head1 AUTHOR
+
+Jeff Ober <sysread@fastmail.fm>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2018 by Jeff Ober.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
+=cut

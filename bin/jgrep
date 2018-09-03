@@ -1,0 +1,91 @@
+#!perl
+# PODNAME: jgrep
+
+use strict;
+use warnings;
+use Getopt::Long;
+use Pod::Usage;
+use JSON::XS qw(decode_json);
+
+my $help    = 0;
+my $inverse = 0;
+my $nocase  = 0;
+my %match;
+
+GetOptions(
+  'help'          => \$help,
+  'match=s%'      => \%match,
+  'inverse|v'     => \$inverse,
+  'ignore-case|i' => \$nocase,
+) or pod2usage(2);
+
+if ($help) {
+  pod2usage(1);
+  exit 0;
+}
+
+my @MATCH = ([undef, undef], [undef, undef]);
+$MATCH[0][0] = sub{ $_[0] =~ /$_[1]/  };
+$MATCH[0][1] = sub{ $_[0] =~ /$_[1]/i };
+$MATCH[1][0] = sub{ $_[0] !~ /$_[1]/  };
+$MATCH[1][1] = sub{ $_[0] !~ /$_[1]/i };
+
+sub match {
+  my $line   = shift;
+  my $object = decode_json $line;
+
+  foreach (keys %match) {
+    return unless $MATCH[$inverse][$nocase]->( $object->{$_} || '', $match{$_} );
+  }
+
+  return 1;
+}
+
+sub run {
+  my $fh = shift;
+  while (defined(my $line = <$fh>)) {
+    next unless match $line;
+    print $line;
+  }
+}
+
+$| = 1;
+
+if (@ARGV) {
+  while (my $path = shift @ARGV) {
+    open my $fh, '<', $path || die $!;
+    run $fh;
+  }
+}
+else {
+  run \*STDIN;
+}
+
+exit 0;
+
+=head1 SYNOPSIS
+
+  jgrep [-v] [-i] -m field1=pattern -m field2=pattern [/path/to/file1 /path/to/file2 ...]
+
+=head1 DESCRIPTION
+
+Filters JSON-formatted line input from supplied file path(s) or standard input
+if not provided.
+
+=head1 OPTIONS
+
+=head2 --match | -m
+
+Only include lines if the value of C<field> matches the regular expression
+C<pattern>. If the field is not present in the object, its value is treated as
+an empty string. This switch may be used multiple times.
+
+=head2 --ignore-case | -i
+
+Ignore case when performing matching.
+
+=head2 --inverse | -v
+
+Invert the meaning of patterns provided by C<--match>.
+
+=cut

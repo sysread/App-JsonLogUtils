@@ -1,0 +1,70 @@
+#!perl
+# PODNAME: jcols
+
+use strict;
+use warnings;
+use Getopt::Long;
+use Pod::Usage;
+use JSON::XS qw(decode_json encode_json);
+
+my $help = 0;
+my $cols = '';
+my $sep  = "\t";
+
+GetOptions(
+  'help'   => \$help,
+  'sep=s'  => \$sep,
+  'cols=s' => \$cols,
+) or pod2usage(2);
+
+if ($help) {
+  pod2usage(1);
+  exit 0;
+}
+
+my @cols = split /\s+/, $cols;
+print join($sep, @cols), "\n";
+
+sub run {
+  my $fh = shift;
+
+  while (defined(my $line = <$fh>)) {
+    my $object = decode_json $line;
+    print join($sep, map{ $object->{$_} || '' } @cols), "\n";
+  }
+}
+
+$| = 1;
+
+if (@ARGV) {
+  while (my $path = shift @ARGV) {
+    open my $fh, '<', $path || die $!;
+    run $fh;
+  }
+}
+else {
+  run \*STDIN;
+}
+
+exit 0;
+
+=head1 SYNOPSIS
+
+  jcols --cols "field1 field2 field3 ..." [--sep "|"] [/path/to/file1 /path/to/file2 ...]
+
+=head1 DESCRIPTION
+
+Outputs JSON object fields in a format suitable for C<column>.
+
+=head1 OPTIONS
+
+=head2 --cols
+
+Space-separated list of fields to include in output. The first line of output will be the
+list of fields, separated by L</--sep>.
+
+=head2 --sep
+
+Optional separator string between columns. Defaults to a single tab.
+
+=cut
