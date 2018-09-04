@@ -24,18 +24,22 @@ if ($help) {
 }
 
 my @cols = split /\s+/, $cols;
-print join($sep, @cols), "\n";
 
 sub run {
   my $fh = shift;
-
   while (defined(my $line = <$fh>)) {
-    my $object = decode_json $line;
-    print join($sep, map{ $object->{$_} || '' } @cols), "\n";
+    if (@cols) {
+      my $object = decode_json $line;
+      print join($sep, map{ $object->{$_} || '' } @cols), "\n";
+    }
   }
 }
 
 $| = 1;
+
+if (@cols) {
+  print join($sep, @cols), "\n";
+}
 
 if (@ARGV) {
   while (my $path = shift @ARGV) {
