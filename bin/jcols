@@ -1,4 +1,5 @@
 #!perl
+# ABSTRACT: transforms JSON into tabular fields suitable for column
 # PODNAME: jcols
 
 use strict;

@@ -1,4 +1,5 @@
 #!perl
+# ABSTRACT: filters output by pattern matching against JSON object fields
 # PODNAME: jgrep
 
 use strict;

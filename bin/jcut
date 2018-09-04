@@ -1,4 +1,5 @@
 #!perl
+# ABSTRACT: filters fields in JSON output
 # PODNAME: jcut
 
 use strict;
