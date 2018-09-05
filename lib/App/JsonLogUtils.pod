@@ -30,6 +30,10 @@ Filter the fields included in objects.
 
 Display fields in a format suitable for C<column>.
 
+=head2 L<jshell>
+
+An interactive shell for monitoring JSON log files.
+
 =head1 FUTURE PLANS
 
 None, but will happily consider requests and patches.
