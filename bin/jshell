@@ -357,3 +357,70 @@ while (defined(my $input = $term->readline($prompt))) {
     out red, "Invalid command; type help for a list of commands.";
   }
 }
+
+=head1 SYNOPSIS
+
+  jshell
+
+=head1 DESCRIPTION
+
+Opens a shell to interact with JSON-formatted log files.
+
+=head1 COMMANDS
+
+=head2 help | h
+
+Displays commands and their descriptions.
+
+=head2 quit | q
+
+Exits the program.
+
+=head2 fields | f
+
+Selects the fields to display from each line's JSON log object. If no fields are
+selected, all fields will be shown.
+
+  > fields timestamp priority message
+
+=head2 grep | g
+
+Adds a pattern which must be matched before a log entry is displayed.
+
+  > grep field somepattern
+
+Despite the name, patterns are perl regexes and matched against the string value
+of the field. Embedded modifiers are supported, so a case insensitive search is
+accomplished thusly:
+
+  > grep field (?i)somepattern
+
+=head2 grepv | v
+
+Adds a pattern which excludes entries whose field value matches.
+
+  > grepv field logswedonotwanttosee
+
+=head2 info | i
+
+Displays the current configuration of displayed fields and patterns.
+
+=head2 reset | r
+
+Interactively resets fields and patterns.
+
+=head2 cat | c
+
+Displays each entry in a file, showing only those fields selected. If no fields
+are selected, all fields are shown.
+
+  > cat /path/to/json.log
+
+=head2 tail | t
+
+Tails a log file, displaying new entries as they are appended to the file. Use
+control-c to stop output.
+
+  > tail /path/to/json.log
+
+=cut
