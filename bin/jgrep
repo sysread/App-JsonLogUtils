@@ -32,8 +32,13 @@ $MATCH[1][0] = sub{ $_[0] !~ /$_[1]/  };
 $MATCH[1][1] = sub{ $_[0] !~ /$_[1]/i };
 
 sub match {
-  my $line   = shift;
-  my $object = decode_json $line;
+  my $line = shift;
+  my $object = eval{ decode_json $line };
+
+  if ($@) {
+    warn "$@\n";
+    return;
+  }
 
   foreach (keys %match) {
     return unless $MATCH[$inverse][$nocase]->( $object->{$_} || '', $match{$_} );

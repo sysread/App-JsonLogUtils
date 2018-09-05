@@ -29,7 +29,13 @@ sub run {
   my $fh = shift;
   while (defined(my $line = <$fh>)) {
     if (@cols) {
-      my $object = decode_json $line;
+      my $object = eval{ decode_json $line };
+
+      if ($@) {
+        warn "$@\n";
+        next;
+      }
+
       print join($sep, map{ $object->{$_} || '' } @cols), "\n";
     }
   }

@@ -29,7 +29,12 @@ sub run {
   my $fh = shift;
 
   while (defined(my $line = <$fh>)) {
-    my $object = decode_json $line;
+    my $object = eval{ decode_json $line };
+
+    if ($@) {
+      warn "$@\n";
+      next;
+    }
 
     if ($inverse) {
       delete $object->{$_} foreach @fields;
