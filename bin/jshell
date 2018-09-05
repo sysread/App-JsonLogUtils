@@ -177,13 +177,13 @@ sub filtered {
 
       foreach my $key (keys %match) {
         foreach my $pattern (@{ $match{$key} }) {
-          goto ITEM unless $obj->{$key} =~ /$pattern/;
+          goto ITEM unless ($obj->{$key} || '') =~ /$pattern/;
         }
       }
 
       foreach my $key (keys %skip) {
         foreach my $pattern (@{ $skip{$key} }) {
-          goto ITEM unless $obj->{$key} !~ /$pattern/;
+          goto ITEM unless ($obj->{$key} || '') !~ /$pattern/;
         }
       }
 
