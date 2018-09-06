@@ -4,9 +4,11 @@
 
 use strict;
 use warnings;
+
 use Getopt::Long;
 use Pod::Usage;
-use JSON::XS qw(decode_json encode_json);
+use App::JsonLogUtils::Iter;
+use App::JsonLogUtils::Log;
 
 my $help = 0;
 my $cols = '';
@@ -23,37 +25,29 @@ if ($help) {
   exit 0;
 }
 
+$| = 1;
+
 my @cols = split /\s+/, $cols;
 
 sub run {
-  my $fh = shift;
-  while (defined(my $line = <$fh>)) {
-    if (@cols) {
-      my $object = eval{ decode_json $line };
+  my $lines = ijson icat shift;
 
-      if ($@) {
-        warn "$@\n";
-        next;
-      }
-
-      print join($sep, map{ $object->{$_} || '' } @cols), "\n";
+  while (my ($line, $obj, $err) = <$lines>) {
+    if ($err) {
+      log_info $err;
+    } else {
+      print join($sep, map{ $obj->{$_} || '' } @cols), "\n";
     }
   }
 }
-
-$| = 1;
 
 if (@cols) {
   print join($sep, @cols), "\n";
 }
 
 if (@ARGV) {
-  while (my $path = shift @ARGV) {
-    open my $fh, '<', $path || die $!;
-    run $fh;
-  }
-}
-else {
+  run $_ foreach @ARGV;
+} else {
   run \*STDIN;
 }
 

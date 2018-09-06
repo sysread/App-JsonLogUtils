@@ -4,30 +4,22 @@
 
 use strict;
 use warnings;
+
 use Getopt::Long;
 use Pod::Usage;
-use JSON::XS qw(decode_json encode_json);
 use List::Util qw(max);
 use Term::SimpleColor;
 use Term::SimpleColor qw(:background);
 use Term::ReadLine;
-use Iterator::Simple qw(iter iterator);
-use Time::HiRes qw(sleep);
-use Fcntl qw(:seek);
+use Iterator::Simple qw(iterator);
+use App::JsonLogUtils::Iter;
 
 #-------------------------------------------------------------------------------
 # Parse command line options
 #-------------------------------------------------------------------------------
 my $help = 0;
-
-GetOptions(
-  'help' => \$help,
-) or pod2usage(2);
-
-if ($help) {
-  pod2usage(1);
-  exit 0;
-}
+GetOptions('help' => \$help) or pod2usage(2);
+do{ pod2usage 1; exit 0; } if $help;
 
 #-------------------------------------------------------------------------------
 # Set up global environment
@@ -35,163 +27,38 @@ if ($help) {
 my $default_prompt = green . '$ ' . default ;
 my $prompt = $default_prompt;
 my $term = Term::ReadLine->new('jshell');
-
-my @fields;
-my %match;
-my %skip;
+my (@fields, %match, %skip);
 
 #-------------------------------------------------------------------------------
 # Utilities
 #-------------------------------------------------------------------------------
-sub out {
-  print { $term->OUT } @_, default, "\n";
-}
-
-sub set_prompt {
-  $prompt = shift || $default_prompt;
-}
+sub out { print { $term->OUT } @_, default, "\n" }
+sub set_prompt { $prompt = shift || $default_prompt }
 
 #-------------------------------------------------------------------------------
 # Iterators
 #-------------------------------------------------------------------------------
-sub lines {
-  my $path = shift;
-
-  open my $fh, '<', $path or do{
-    out red, "$!\n";
-    return;
-  };
-
-  iterator{
-    while (defined(my $line = <$fh>)) {
-      chomp $line;
-      return $line;
-    }
-
-    return;
-  }
-}
-
-sub tail {
-  my $path   = shift;
-  my $pos    = 0;
-  my $notify = 0;
-  my $stop   = 0;
-
-  open my $fh, '<', $path or do{
-    out red, "$!\n";
-    return;
-  };
-
-  seek $fh, 0, SEEK_END;
-  $pos = tell $fh;
-
-  $SIG{INT} = sub{
-    out yellow, 'Stopped';
-    $stop = 1;
-  };
-
-  iterator{
-    LINE:do{
-      # Check for control-c
-      if ($stop) {
-        undef $SIG{INT};
-        return;
-      }
-
-      # Check for file truncation
-      my $eof = eof $fh;
-      my $cur = tell $fh;
-
-      seek $fh, 0, SEEK_END;
-      my $end = tell $fh;
-
-      if ($end < $cur) {
-        out yellow, 'File truncated';
-        $pos = $end;
-      }
-      else {
-        $pos = $cur;
-      }
-
-      seek $fh, $pos, SEEK_SET;
-      <$fh> if $eof;
-
-      # Return next line
-      if (defined(my $line = <$fh>)) {
-        undef $notify;
-        chomp $line;
-        return $line;
-      }
-
-      # At EOF; notify user with how to break loop
-      unless ($notify) {
-        out yellow, 'Use control-c to break';
-        $notify = 1;
-      }
-
-      # Reset position
-      seek $fh, $pos, SEEK_SET;
-
-      # Reset EOF condition on handle and wait for new input
-      seek $fh, 0, SEEK_CUR;
-      sleep 1;
-
-      # Try again
-      goto LINE;
-    };
-  };
-}
-
-sub parsed {
-  my $lines = shift;
-
-  iterator{
-    while (defined(my $line = <$lines>)) {
-      return (undef, "empty line") unless $line;
-      my $obj = eval{ decode_json($line) };
-      return (undef, "invalid JSON: $line") if $@;
-      return ($obj, undef);
-    }
-
-    return;
-  }
-}
-
 sub filtered {
-  my $parsed = shift;
-  my $line   = 0;
+  my $json = shift;
+  my $lineno = 0;
 
-  iterator{
-    ITEM:do{
-      my ($obj, $err) = <$parsed>;
+  return igrep{
+    my ($obj, $line) = @_;
 
-      return if !defined $obj
-             && !defined $err;
-
-      ++$line;
-
-      if (defined $err) {
-        return ($line, undef, $err);
+    foreach my $key (keys %match) {
+      foreach my $pattern (@{ $match{$key} }) {
+        return unless ($obj->{$key} || '') =~ /$pattern/;
       }
+    }
 
-      foreach my $key (keys %match) {
-        foreach my $pattern (@{ $match{$key} }) {
-          goto ITEM unless ($obj->{$key} || '') =~ /$pattern/;
-        }
+    foreach my $key (keys %skip) {
+      foreach my $pattern (@{ $skip{$key} }) {
+        return unless ($obj->{$key} || '') !~ /$pattern/;
       }
+    }
 
-      foreach my $key (keys %skip) {
-        foreach my $pattern (@{ $skip{$key} }) {
-          goto ITEM unless ($obj->{$key} || '') !~ /$pattern/;
-        }
-      }
-
-      return ($line, $obj, undef);
-    };
-
-    return;
-  };
+    return 1;
+  } $json;
 }
 
 sub formatted {
@@ -199,24 +66,15 @@ sub formatted {
 
   iterator{
     LOOP:do{
-      my ($line, $obj, $err) = <$filtered>;
-
-      return if !defined $obj
-             && !defined $err;
-
-      if (defined $err) {
-        return sprintf '%s[line:%d] %s%s', red, $line, $err, default;
-      }
+      my ($obj, $line) = <$filtered>;
+      return unless defined $obj;
 
       my @keys = @fields ? @fields : keys %$obj;
       my $len  = max map{ length $_ } @keys;
-      my @out;
 
-      foreach my $key (@keys) {
-        push @out, sprintf("%s%s[%${len}s:%d]%s%s %s", bg_green, black, $key, $line, bg_default, default, $obj->{$key} || '');
-      }
-
-      return join "\n", @out;
+      return join "\n", map{
+        sprintf("%s%s[%${len}s]%s%s %s", bg_green, black, $_, bg_default, default, $obj->{$_} || '')
+      } @keys;
     };
   };
 }
@@ -304,7 +162,7 @@ sub cmd_reset {
 
 sub cmd_cat {
   my $path = shift;
-  my $entries = formatted filtered parsed lines $path;
+  my $entries = formatted filtered ijson icat $path;
 
   while (my $entry = <$entries>) {
     out $entry;
@@ -314,7 +172,7 @@ sub cmd_cat {
 
 sub cmd_tail {
   my $path = shift;
-  my $entries = formatted filtered parsed tail $path;
+  my $entries = formatted filtered ijson itail $path;
 
   while (my $entry = <$entries>) {
     out $entry;

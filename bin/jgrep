@@ -4,9 +4,11 @@
 
 use strict;
 use warnings;
+
 use Getopt::Long;
 use Pod::Usage;
-use JSON::XS qw(decode_json);
+use List::Util qw(all);
+use App::JsonLogUtils::Iter;
 
 my $help    = 0;
 my $inverse = 0;
@@ -25,45 +27,29 @@ if ($help) {
   exit 0;
 }
 
-my @MATCH = ([undef, undef], [undef, undef]);
-$MATCH[0][0] = sub{ $_[0] =~ /$_[1]/  };
-$MATCH[0][1] = sub{ $_[0] =~ /$_[1]/i };
-$MATCH[1][0] = sub{ $_[0] !~ /$_[1]/  };
-$MATCH[1][1] = sub{ $_[0] !~ /$_[1]/i };
+$| = 1;
+
+my $MATCH = (!$inverse && !$nocase) ? sub{ $_[0] =~ /$_[1]/  }
+          : (!$inverse && $nocase ) ? sub{ $_[0] =~ /$_[1]/i }
+          : ($inverse  && !$nocase) ? sub{ $_[0] !~ /$_[1]/  }
+                                    : sub{ $_[0] !~ /$_[1]/i };
 
 sub match {
-  my $line = shift;
-  my $object = eval{ decode_json $line };
-
-  if ($@) {
-    warn "$@\n";
-    return;
-  }
-
-  foreach (keys %match) {
-    return unless $MATCH[$inverse][$nocase]->( $object->{$_} || '', $match{$_} );
-  }
-
-  return 1;
+  my $obj = shift;
+  all{ $MATCH->($obj->{$_} || '', $match{$_}) }
+    keys %match;
 }
 
 sub run {
-  my $fh = shift;
-  while (defined(my $line = <$fh>)) {
-    next unless match $line;
-    print $line;
+  my $lines = igrep{ match(@_) } ijson icat shift;
+  while (my ($obj, $line) = <$lines>) {
+    print $line, "\n";
   }
 }
-
-$| = 1;
 
 if (@ARGV) {
-  while (my $path = shift @ARGV) {
-    open my $fh, '<', $path || die $!;
-    run $fh;
-  }
-}
-else {
+  run $_ foreach @ARGV;
+} else {
   run \*STDIN;
 }
 

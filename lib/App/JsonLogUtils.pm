@@ -1,5 +1,8 @@
+package App::JsonLogUtils;
 # ABSTRACT: Command line utilities for dealing with JSON-formatted log files
-# PODNAME: App::JsonLogUtils
+
+use strict;
+use warnings;
 
 =head1 SYNOPSIS
 
@@ -39,3 +42,5 @@ An interactive shell for monitoring JSON log files.
 None, but will happily consider requests and patches.
 
 =cut
+
+1;

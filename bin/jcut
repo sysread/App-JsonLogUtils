@@ -4,13 +4,15 @@
 
 use strict;
 use warnings;
+
 use Getopt::Long;
 use Pod::Usage;
-use JSON::XS qw(decode_json encode_json);
+use App::JsonLogUtils::Iter;
+use App::JsonLogUtils::Log;
 
-my $help = 0;
+my $help    = 0;
 my $inverse = 0;
-my $fields;
+my $fields  = '';
 
 GetOptions(
   'help'       => \$help,
@@ -23,39 +25,30 @@ if ($help) {
   exit 0;
 }
 
+$| = 1;
+
 my @fields = split /\s+/, $fields;
 
 sub run {
-  my $fh = shift;
+  my $lines = ijson icat shift;
 
-  while (defined(my $line = <$fh>)) {
-    my $object = eval{ decode_json $line };
-
-    if ($@) {
-      warn "$@\n";
-      next;
-    }
-
-    if ($inverse) {
-      delete $object->{$_} foreach @fields;
-      print encode_json($object), "\n";
+  while (my ($line, $obj, $err) = <$lines>) {
+    if ($err) {
+      log_info $err;
+    } elsif ($inverse) {
+      delete $obj->{$_} foreach @fields;
+      print encode_json($obj), "\n";
     } else {
       my %filtered;
-      $filtered{$_} = $object->{$_} foreach @fields;
+      $filtered{$_} = $obj->{$_} foreach @fields;
       print encode_json(\%filtered), "\n";
     }
   }
 }
 
-$| = 1;
-
 if (@ARGV) {
-  while (my $path = shift @ARGV) {
-    open my $fh, '<', $path || die $!;
-    run $fh;
-  }
-}
-else {
+  run $_ foreach @ARGV;
+} else {
   run \*STDIN;
 }
 

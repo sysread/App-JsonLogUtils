@@ -1,4 +1,6 @@
 {{$NEXT}}
+-silenced warning in jshell when matching field not present in entry
+-moved some functionality out of scripts
 
 0.01 2018-09-05
--Initial release
+-initial release
