@@ -142,8 +142,6 @@ sub igrep (&$) {
       if ($filter->($obj, $line)) {
         return ($obj, $line);
       }
-
-      return;
     }
 
     return;

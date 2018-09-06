@@ -22,6 +22,7 @@ sub new {
 
 sub iter {
   my ($self, $path) = @_;
+  croak 'expected file path or handle' unless $path;
   igrep{ $self->match(@_) } ijson icat $path;
 }
 
