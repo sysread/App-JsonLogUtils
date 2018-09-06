@@ -1,7 +1,6 @@
 use strict;
 use warnings;
 use Test2::V0;
-use Iterator::Simple qw(list);
 use App::JsonLogUtils::Grep;
 
 my $log = <<'EOS';
