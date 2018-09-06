@@ -8,7 +8,7 @@ use warnings;
 use Getopt::Long;
 use Pod::Usage;
 use List::Util qw(all);
-use App::JsonLogUtils::Iter;
+use App::JsonLogUtils::Grep;
 
 my $help    = 0;
 my $inverse = 0;
@@ -27,30 +27,19 @@ if ($help) {
   exit 0;
 }
 
+my $grep = App::JsonLogUtils::Grep->new(
+  patterns => \%match,
+  inverse  => $inverse,
+  nocase   => $nocase,
+);
+
 $| = 1;
 
-my $MATCH = (!$inverse && !$nocase) ? sub{ $_[0] =~ /$_[1]/  }
-          : (!$inverse && $nocase ) ? sub{ $_[0] =~ /$_[1]/i }
-          : ($inverse  && !$nocase) ? sub{ $_[0] !~ /$_[1]/  }
-                                    : sub{ $_[0] !~ /$_[1]/i };
-
-sub match {
-  my $obj = shift;
-  all{ $MATCH->($obj->{$_} || '', $match{$_}) }
-    keys %match;
-}
-
-sub run {
-  my $lines = igrep{ match(@_) } ijson icat shift;
-  while (my ($obj, $line) = <$lines>) {
+foreach (@ARGV ? @ARGV : (\*STDIN)) {
+  my $matches = $grep->iter($_);
+  while (my ($obj, $line) = <$matches>) {
     print $line, "\n";
   }
-}
-
-if (@ARGV) {
-  run $_ foreach @ARGV;
-} else {
-  run \*STDIN;
 }
 
 exit 0;

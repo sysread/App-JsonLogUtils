@@ -7,8 +7,8 @@ use warnings;
 
 use Getopt::Long;
 use Pod::Usage;
-use App::JsonLogUtils::Iter;
-use App::JsonLogUtils::Log;
+use JSON::XS qw(encode_json);
+use App::JsonLogUtils::Cut;
 
 my $help    = 0;
 my $inverse = 0;
@@ -25,31 +25,18 @@ if ($help) {
   exit 0;
 }
 
+my $cut = App::JsonLogUtils::Cut->new(
+  fields  => [split /\s+/, $fields],
+  inverse => $inverse,
+);
+
 $| = 1;
 
-my @fields = split /\s+/, $fields;
-
-sub run {
-  my $lines = ijson icat shift;
-
-  while (my ($line, $obj, $err) = <$lines>) {
-    if ($err) {
-      log_info $err;
-    } elsif ($inverse) {
-      delete $obj->{$_} foreach @fields;
-      print encode_json($obj), "\n";
-    } else {
-      my %filtered;
-      $filtered{$_} = $obj->{$_} foreach @fields;
-      print encode_json(\%filtered), "\n";
-    }
+foreach (@ARGV ? @ARGV : (\*STDIN)) {
+  my $entries = $cut->iter($_);
+  while (my $entry = <$entries>) {
+    print encode_json($entry), "\n";
   }
-}
-
-if (@ARGV) {
-  run $_ foreach @ARGV;
-} else {
-  run \*STDIN;
 }
 
 exit 0;

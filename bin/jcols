@@ -7,17 +7,17 @@ use warnings;
 
 use Getopt::Long;
 use Pod::Usage;
+use App::JsonLogUtils::Cols;
 use App::JsonLogUtils::Iter;
 use App::JsonLogUtils::Log;
 
 my $help = 0;
-my $cols = '';
-my $sep  = "\t";
+my %param;
 
 GetOptions(
   'help'   => \$help,
-  'sep=s'  => \$sep,
-  'cols=s' => \$cols,
+  'sep=s'  => \$param{sep},
+  'cols=s' => \$param{cols},
 ) or pod2usage(2);
 
 if ($help) {
@@ -25,30 +25,15 @@ if ($help) {
   exit 0;
 }
 
+my $col = App::JsonLogUtils::Cols->new(%param);
+
 $| = 1;
 
-my @cols = split /\s+/, $cols;
-
-sub run {
-  my $lines = ijson icat shift;
-
-  while (my ($line, $obj, $err) = <$lines>) {
-    if ($err) {
-      log_info $err;
-    } else {
-      print join($sep, map{ $obj->{$_} || '' } @cols), "\n";
-    }
+foreach (@ARGV ? @ARGV : (\*STDIN)) {
+  my $rows = $col->iter($_);
+  while (my $row = <$rows>) {
+    print $row, "\n";
   }
-}
-
-if (@cols) {
-  print join($sep, @cols), "\n";
-}
-
-if (@ARGV) {
-  run $_ foreach @ARGV;
-} else {
-  run \*STDIN;
 }
 
 exit 0;
