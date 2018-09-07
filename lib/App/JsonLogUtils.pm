@@ -23,19 +23,29 @@ tools to salve the burn.
 
 =head2 L<jgrep>
 
+=head2 L<App::JsonLogUtils::Grep>
+
 Greps patterns in individual object fields.
 
 =head2 L<jcut>
 
+=head2 L<App::JsonLogUtils::Cut>
+
 Filter the fields included in objects.
 
 =head2 L<jcols>
+
+=head2 L<App::JsonLogUtils::Cols>
 
 Display fields in a format suitable for C<column>.
 
 =head2 L<jshell>
 
 An interactive shell for monitoring JSON log files.
+
+=head1 SEE ALSO
+
+=head2 L<App::JsonLogUtils::Iter>
 
 =head1 FUTURE PLANS
 

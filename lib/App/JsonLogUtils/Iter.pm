@@ -1,10 +1,11 @@
 package App::JsonLogUtils::Iter;
+# ABSTRACT: Iterators used internally by App::JsonLogUtils
 
 use strict;
 use warnings;
 
 use JSON::XS qw(decode_json encode_json);
-use Iterator::Simple qw(iterator);
+use Iterator::Simple qw(iterator iter imap);
 use Time::HiRes qw(sleep);
 use Fcntl qw(:seek);
 use App::JsonLogUtils::Log;
@@ -12,10 +13,10 @@ use App::JsonLogUtils::Log;
 use parent 'Exporter';
 
 our @EXPORT = qw(
-  icat
-  itail
+  lines
+  tail
+  entries
   ijson
-  igrep
 );
 
 sub _open {
@@ -33,26 +34,18 @@ sub _open {
 #-------------------------------------------------------------------------------
 # Iterators
 #-------------------------------------------------------------------------------
-sub icat ($) {
+sub lines ($) {
   my $path = shift;
   my $fh   = _open $path || return;
-
-  iterator{
-    while (defined(my $line = <$fh>)) {
-      chomp $line;
-      return $line;
-    }
-
-    return;
-  }
+  imap{ chomp $_; $_ } iter $fh;
 }
 
-sub itail ($) {
-  my $path   = shift;
-  my $fh     = _open $path || return;
-  my $pos    = 0;
-  my $notify = 0;
-  my $stop   = 0;
+sub tail ($) {
+  my $path     = shift;
+  my $fh       = _open $path || return;
+  my $pos      = 0;
+  my $notified = 0;
+  my $stop     = 0;
 
   seek $fh, 0, SEEK_END;
   $pos = tell $fh;
@@ -90,15 +83,15 @@ sub itail ($) {
 
       # Return next line
       if (defined(my $line = <$fh>)) {
-        undef $notify;
+        $notified = 0;
         chomp $line;
         return $line;
       }
 
       # At EOF; notify user with how to break loop
-      unless ($notify) {
+      if (!$notified) {
         log_info 'Use control-c to break';
-        $notify = 0;
+        $notified = 1;
       }
 
       # Reset position
@@ -106,7 +99,7 @@ sub itail ($) {
 
       # Reset EOF condition on handle and wait for new input
       seek $fh, 0, SEEK_CUR;
-      sleep 0.1;
+      sleep 0.2;
 
       # Try again
       goto LINE;
@@ -114,34 +107,24 @@ sub itail ($) {
   };
 }
 
-sub ijson ($) {
+sub entries ($) {
   my $lines = shift;
 
   iterator{
     while (defined(my $line = <$lines>)) {
-      return (undef, undef, "empty line") unless $line;
-      my $obj = eval{ decode_json($line) };
-      return (undef, undef, "invalid JSON: $line") if $@;
-      return ($line, $obj, undef);
-    }
-
-    return;
-  }
-}
-
-sub igrep (&$) {
-  my ($filter, $json) = @_;
-
-  iterator{
-    while (my ($line, $obj, $err) = <$json>) {
-      if ($err) {
-        log_info $err;
+      if (!$line) {
+        log_info 'empty line';
         next;
       }
 
-      if ($filter->($obj, $line)) {
-        return ($obj, $line);
+      my $obj = eval{ decode_json $line };
+
+      if ($@) {
+        log_warn "invalid JSON: $line";
+        next;
       }
+
+      return [$obj, $line];
     }
 
     return;

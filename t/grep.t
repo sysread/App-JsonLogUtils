@@ -21,7 +21,8 @@ subtest basics => sub{
 
   ok my $iter = $grep->iter($fh), 'iter';
 
-  my ($obj, $line) = <$iter>;
+  my $entry = <$iter>;
+  my ($obj, $line) = @$entry;
   is $obj, {id => 1, foo => 'bar'}, 'obj';
   is $line, '{"id": 1, "foo": "bar"}', 'line';
   is <$iter>, U, 'exhausted';
@@ -45,7 +46,8 @@ subtest inverse => sub{
   );
 
   foreach (@expected) {
-    my ($obj, $line) = <$iter>;
+    my $entry = <$iter>;
+    my ($obj, $line) = @$entry;
     is $obj,  $_->[0], 'obj';
     is $line, $_->[1], 'line';
   }
@@ -70,7 +72,8 @@ subtest nocase => sub{
   );
 
   foreach (@expected) {
-    my ($obj, $line) = <$iter>;
+    my $entry = <$iter>;
+    my ($obj, $line) = @$entry;
     is $obj,  $_->[0], 'obj';
     is $line, $_->[1], 'line';
   }

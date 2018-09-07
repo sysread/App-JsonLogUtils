@@ -1,4 +1,5 @@
 package App::JsonLogUtils::Cut;
+# ABSTRACT: Field filtering for JSON log files
 
 use strict;
 use warnings;
@@ -18,14 +19,13 @@ sub new {
 
 sub iter {
   my ($self, $path) = @_;
-  my $lines = ijson icat $path;
+  my $lines = entries lines $path;
 
   iterator{
-    while (my ($line, $obj, $err) = <$lines>) {
-      if ($err) {
-        log_info $err;
-      }
-      elsif ($self->{inverse}) {
+    while (my $entry = <$lines>) {
+      my ($obj, $line) = @$entry;
+
+      if ($self->{inverse}) {
         delete $obj->{$_} foreach @{$self->{fields}};
         return $obj;
       }

@@ -11,7 +11,7 @@ use List::Util qw(max);
 use Term::SimpleColor;
 use Term::SimpleColor qw(:background);
 use Term::ReadLine;
-use Iterator::Simple qw(iterator);
+use Iterator::Simple qw(iterator igrep imap);
 use App::JsonLogUtils::Iter;
 
 #-------------------------------------------------------------------------------
@@ -43,7 +43,7 @@ sub filtered {
   my $lineno = 0;
 
   return igrep{
-    my ($obj, $line) = @_;
+    my ($obj, $line) = @$_;
 
     foreach my $key (keys %match) {
       foreach my $pattern (@{ $match{$key} }) {
@@ -64,19 +64,15 @@ sub filtered {
 sub formatted {
   my $filtered = shift;
 
-  iterator{
-    LOOP:do{
-      my ($obj, $line) = <$filtered>;
-      return unless defined $obj;
+  imap{
+    my $obj  = $_->[0];
+    my @keys = @fields ? @fields : sort keys %$obj;
+    my $len  = max map{ length $_ } @keys;
 
-      my @keys = @fields ? @fields : keys %$obj;
-      my $len  = max map{ length $_ } @keys;
-
-      return join "\n", map{
-        sprintf("%s%s[%${len}s]%s%s %s", bg_green, black, $_, bg_default, default, $obj->{$_} || '')
-      } @keys;
-    };
-  };
+    join "\n", map{
+      sprintf("%s%s[%${len}s]%s%s %s", bg_green, black, $_, bg_default, default, $obj->{$_} || '')
+    } @keys;
+  } $filtered;
 }
 
 #-------------------------------------------------------------------------------
@@ -162,7 +158,7 @@ sub cmd_reset {
 
 sub cmd_cat {
   my $path = shift;
-  my $entries = formatted filtered ijson icat $path;
+  my $entries = formatted filtered entries lines $path;
 
   while (my $entry = <$entries>) {
     out $entry;
@@ -172,7 +168,7 @@ sub cmd_cat {
 
 sub cmd_tail {
   my $path = shift;
-  my $entries = formatted filtered ijson itail $path;
+  my $entries = formatted filtered ijson tail $path;
 
   while (my $entry = <$entries>) {
     out $entry;

@@ -1,10 +1,11 @@
 package App::JsonLogUtils::Cols;
+# ABSTRACT: Field selection and formatting for JSON log files in a format suitable for column
 
 use strict;
 use warnings;
 
 use Carp;
-use Iterator::Simple qw(iterator ichain);
+use Iterator::Simple qw(iterator ichain imap);
 use App::JsonLogUtils::Iter;
 use App::JsonLogUtils::Log;
 
@@ -24,19 +25,12 @@ sub iter {
   my $sep   = $self->{sep};
   my @cols  = @{$self->{cols}};
   my $head  = Iterator::Simple::iter([ join($sep, @cols) ]);
-  my $lines = ijson icat $path;
-  my $rows  = iterator{
-    while (my ($line, $obj, $err) = <$lines>) {
-      if ($err) {
-        log_info $err;
-      }
-      else {
-        return join($sep, map{ $obj->{$_} || '' } @cols);
-      }
-    }
+  my $lines = entries lines $path;
 
-    return;
-  };
+  my $rows = imap{
+    my ($obj, $line) = @$_;
+    return join($sep, map{ $obj->{$_} || '' } @cols);
+  } $lines;
 
   ichain $head, $rows;
 }

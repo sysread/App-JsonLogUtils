@@ -1,4 +1,5 @@
 package App::JsonLogUtils::Log;
+# ABSTRACT: Logging utilities used internally by App::JsonLogUtils
 
 use strict;
 use warnings;

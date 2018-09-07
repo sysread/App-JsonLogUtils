@@ -37,8 +37,8 @@ $| = 1;
 
 foreach (@ARGV ? @ARGV : (\*STDIN)) {
   my $matches = $grep->iter($_);
-  while (my ($obj, $line) = <$matches>) {
-    print $line, "\n";
+  while (my $entry = <$matches>) {
+    print $entry->[1], "\n";
   }
 }
 
