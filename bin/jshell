@@ -40,7 +40,6 @@ sub set_prompt { $prompt = shift || $default_prompt }
 #-------------------------------------------------------------------------------
 sub filtered {
   my $json = shift;
-  my $lineno = 0;
 
   return igrep{
     my ($obj, $line) = @$_;
@@ -87,7 +86,7 @@ sub cmd_help {
   out green, '[i]nfo                        Display selected fields and patterns';
   out green, '[r]eset                       Interactively reset fields and patterns';
   out green, '[c]at                         Prints all matched lines to the terminal';
-  out green, '[t]ail                        Prints all matched lines to the terminal, continuing as the file is appended';
+  out green, '[t]ail                        Prints all matched lines to the terminal, continuing as the file is appended. Control-c returns to the shell.';
   out;
   out green, 'All patterns are case sensitive, except when using embedded match modifiers: (?i)..(?-i).';
   out;

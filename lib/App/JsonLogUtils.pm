@@ -140,11 +140,10 @@ ignored (that is, there is no equivalent to C<tail -c 10> at this time).
 =cut
 
 sub tail ($) {
-  my $path     = shift;
-  my $fh       = _open $path || return;
-  my $pos      = 0;
-  my $notified = 0;
-  my $stop     = 0;
+  my $path = shift;
+  my $fh   = _open $path || return;
+  my $pos  = 0;
+  my $stop = 0;
 
   seek $fh, 0, SEEK_END;
   $pos = tell $fh;
@@ -182,15 +181,8 @@ sub tail ($) {
 
       # Return next line
       if (defined(my $line = <$fh>)) {
-        $notified = 0;
         chomp $line;
         return $line;
-      }
-
-      # At EOF; notify user with how to break loop
-      if (!$notified) {
-        log_info 'Use control-c to break';
-        $notified = 1;
       }
 
       # Reset position
