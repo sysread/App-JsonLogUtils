@@ -104,6 +104,9 @@ sub _open {
 
 =head1 EXPORTABLE ROUTINES
 
+If desired, the iterators used to implement the tools above are optionally
+exported by the main module.
+
 =head1 lines
 
 Accepts a file path or opened file handle and returns an iterator which yields
