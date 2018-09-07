@@ -69,7 +69,7 @@ use strict;
 use warnings;
 
 use Fcntl             qw(:seek);
-use Iterator::Simple  qw(iterator iter imap);
+use Iterator::Simple  qw(iterator iter igrep imap ichain);
 use JSON::XS          qw(decode_json encode_json);
 use Time::HiRes       qw(sleep);
 use Term::SimpleColor;
@@ -80,6 +80,9 @@ our @EXPORT_OK = qw(
   lines
   tail
   json_log
+  json_cols
+  json_cut
+  json_grep
 );
 
 
@@ -248,6 +251,141 @@ sub json_log ($) {
 
     return;
   };
+}
+
+
+=head2 json_cols
+
+Accepts a list of fields (as a space-separared string or array ref of strings),
+a string separator, and an iterator over JSON object strings, and returns a new
+iterator. The returned iterator will first yield a string of column names
+joined by the separator string. Subsequent calls will iterate over the JSON
+object strings, return the value of each of the selected fields joined by the
+separator string.
+
+  # File $input
+  {"a": 1, "b": 2, "c": 3}
+  {"a": 4, "b": 5, "c": 6}
+  {"a": 7, "b": 8, "c": 9}
+
+  # Select columns a and c, separated by a pipe
+  my $cols = json_cols "a c", "|" , lines $input;
+
+  # ...yields the following strings:
+  "a|c"
+  "1|3"
+  "4|6"
+  "7|9"
+
+=cut
+
+sub json_cols ($$$) {
+  my ($cols, $sep, $lines) = @_;
+  my @cols = ref $cols ? @$cols : split /\s+/, $cols;
+  my $head = iter [ join($sep, @cols) ];
+  my $rows = imap{
+    my $obj = $_->[0];
+    return join($sep, map{ $obj->{$_} || '' } @cols);
+  } json_log $lines;
+  ichain $head, $rows;
+}
+
+
+=head2 json_cut
+
+Accepts a space-separated string or array ref of C<$fields>, boolean
+C<$inverse>, and an iterator of JSON log lines. Returns an iterator yielding
+objects containing only the fields selected in C<$fields>. If C<$inverse> is
+true, instead yields objects containing only the fields I<not> contained in
+C<$fields>.
+
+Give the same input as the L<previous example|/json_cols>:
+
+  my $cut = json_cut "a c", 0, lines $input;
+
+  # ...yields the following hash refs:
+  {a => 1, c => 3}
+  {a => 4, c => 6}
+  {a => 7, c => 9}
+
+  # Inverted
+  my $cut = json_cut "a c", 1, lines $input;
+
+  # ...yields:
+  {b => 2}
+  {b => 5}
+  {b => 8}
+
+=cut
+
+sub json_cut ($$$) {
+  my ($fields, $inverse, $lines) = @_;
+  my @fields = ref $fields ? @$fields : split /\s+/, $fields;
+
+  if ($inverse) {
+    imap{
+      foreach my $field (@fields) {
+        delete $_->[0]{$field};
+      }
+
+      $_->[0];
+    } json_log $lines;
+  }
+  else {
+    imap{
+      my %filtered;
+      foreach my $field (@fields) {
+        $filtered{$field} = $_->[0]{$field};
+      }
+
+      \%filtered;
+    } json_log $lines;
+  }
+}
+
+
+=head2 json_grep
+
+Accepts a hash ref where keys are field names and values are arrays of
+regular expressions, a boolean C<$inverse>, and an iterator of JSON object
+strings. Returns an iterator yielding array refs of the parsed JSON object
+hash and the original string (just like L</json_log>). Only those entries
+for which all fields' patterns match are returned. If C<$inverse> is set,
+the logic is negated and only those entries for which all patterns test
+false are returned.
+
+  # File $input
+  {"foo": "bar"}
+  {"foo": "baz"}
+  {"foo": "bat"}
+  {"foo": "BAR"}
+
+  # Code
+  my $entries = json_grep { foo => [qw/bar/i, qr/baz/] }, 0, lines $input;
+
+  # ...yields the following:
+  [ {foo => "bar"}, '{"foo": "bar"}' ]
+  [ {foo => "baz"}, '{"foo": "baz"}' ]
+  [ {foo => "BAR"}, '{"foo": "BAR"}' ]
+
+=cut
+
+sub json_grep ($$$) {
+  my ($patterns, $inverse, $lines) = @_;
+  return igrep{
+    my $obj = $_->[0];
+
+    foreach my $field (keys %$patterns) {
+      foreach my $pattern (@{$patterns->{$field}}) {
+        return unless $inverse
+          ? $obj->{$field} !~ $pattern
+          : $obj->{$field} =~ $pattern;
+      }
+    }
+
+    return 1;
+  }
+  json_log $lines;
 }
 
 

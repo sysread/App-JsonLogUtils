@@ -8,7 +8,7 @@ use warnings;
 use Getopt::Long;
 use Pod::Usage;
 use JSON::XS qw(encode_json);
-use App::JsonLogUtils::Cut;
+use App::JsonLogUtils qw(lines json_cut);
 
 my $help    = 0;
 my $inverse = 0;
@@ -25,15 +25,10 @@ if ($help) {
   exit 0;
 }
 
-my $cut = App::JsonLogUtils::Cut->new(
-  fields  => [split /\s+/, $fields],
-  inverse => $inverse,
-);
-
 $| = 1;
 
 foreach (@ARGV ? @ARGV : (\*STDIN)) {
-  my $entries = $cut->iter($_);
+  my $entries = json_cut $fields, $inverse, lines $_;
   while (my $entry = <$entries>) {
     print encode_json($entry), "\n";
   }

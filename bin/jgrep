@@ -7,8 +7,8 @@ use warnings;
 
 use Getopt::Long;
 use Pod::Usage;
-use List::Util qw(all);
-use App::JsonLogUtils::Grep;
+use Iterator::Simple qw(igrep imap);
+use App::JsonLogUtils qw(lines json_grep);
 
 my $help    = 0;
 my $inverse = 0;
@@ -27,17 +27,14 @@ if ($help) {
   exit 0;
 }
 
-my $grep = App::JsonLogUtils::Grep->new(
-  patterns => \%match,
-  inverse  => $inverse,
-  nocase   => $nocase,
-);
-
 $| = 1;
 
+$match{$_} = [ $nocase ? qr/$match{$_}/i : qr/$match{$_}/ ]
+  foreach keys %match;
+
 foreach (@ARGV ? @ARGV : (\*STDIN)) {
-  my $matches = $grep->iter($_);
-  while (my $entry = <$matches>) {
+  my $entries = json_grep \%match, $inverse, lines $_;
+  while (my $entry = <$entries>) {
     print $entry->[1], "\n";
   }
 }

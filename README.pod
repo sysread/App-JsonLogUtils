@@ -114,6 +114,78 @@ warning. JSON decoding errors are ignored with a warning.
     ...
   }
 
+=head2 json_cols
+
+Accepts a list of fields (as a space-separared string or array ref of strings),
+a string separator, and an iterator over JSON object strings, and returns a new
+iterator. The returned iterator will first yield a string of column names
+joined by the separator string. Subsequent calls will iterate over the JSON
+object strings, return the value of each of the selected fields joined by the
+separator string.
+
+  # File $input
+  {"a": 1, "b": 2, "c": 3}
+  {"a": 4, "b": 5, "c": 6}
+  {"a": 7, "b": 8, "c": 9}
+
+  # Select columns a and c, separated by a pipe
+  my $cols = json_cols "a c", "|" , lines $input;
+
+  # ...yields the following strings:
+  "a|c"
+  "1|3"
+  "4|6"
+  "7|9"
+
+=head2 json_cut
+
+Accepts a space-separated string or array ref of C<$fields>, boolean
+C<$inverse>, and an iterator of JSON log lines. Returns an iterator yielding
+objects containing only the fields selected in C<$fields>. If C<$inverse> is
+true, instead yields objects containing only the fields I<not> contained in
+C<$fields>.
+
+Give the same input as the L<previous example|/json_cols>:
+
+  my $cut = json_cut "a c", 0, lines $input;
+
+  # ...yields the following hash refs:
+  {a => 1, c => 3}
+  {a => 4, c => 6}
+  {a => 7, c => 9}
+
+  # Inverted
+  my $cut = json_cut "a c", 1, lines $input;
+
+  # ...yields:
+  {b => 2}
+  {b => 5}
+  {b => 8}
+
+=head2 json_grep
+
+Accepts a hash ref where keys are field names and values are arrays of
+regular expressions, a boolean C<$inverse>, and an iterator of JSON object
+strings. Returns an iterator yielding array refs of the parsed JSON object
+hash and the original string (just like L</json_log>). Only those entries
+for which all fields' patterns match are returned. If C<$inverse> is set,
+the logic is negated and only those entries for which all patterns test
+false are returned.
+
+  # File $input
+  {"foo": "bar"}
+  {"foo": "baz"}
+  {"foo": "bat"}
+  {"foo": "BAR"}
+
+  # Code
+  my $entries = json_grep { foo => [qw/bar/i, qr/baz/] }, 0, lines $input;
+
+  # ...yields the following:
+  [ {foo => "bar"}, '{"foo": "bar"}' ]
+  [ {foo => "baz"}, '{"foo": "baz"}' ]
+  [ {foo => "BAR"}, '{"foo": "BAR"}' ]
+
 =head1 SEE ALSO
 
 =head2 L<App::JsonLogUtils::Iter>
