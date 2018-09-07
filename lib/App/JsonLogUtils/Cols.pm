@@ -6,8 +6,7 @@ use warnings;
 
 use Carp;
 use Iterator::Simple qw(iterator ichain imap);
-use App::JsonLogUtils::Iter;
-use App::JsonLogUtils::Log;
+use App::JsonLogUtils qw(lines json_log);
 
 sub new {
   my ($class, %param) = @_;
@@ -25,7 +24,7 @@ sub iter {
   my $sep   = $self->{sep};
   my @cols  = @{$self->{cols}};
   my $head  = Iterator::Simple::iter([ join($sep, @cols) ]);
-  my $lines = entries lines $path;
+  my $lines = json_log lines $path;
 
   my $rows = imap{
     my ($obj, $line) = @$_;

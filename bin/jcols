@@ -8,8 +8,6 @@ use warnings;
 use Getopt::Long;
 use Pod::Usage;
 use App::JsonLogUtils::Cols;
-use App::JsonLogUtils::Iter;
-use App::JsonLogUtils::Log;
 
 my $help = 0;
 my %param;

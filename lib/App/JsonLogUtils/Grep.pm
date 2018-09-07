@@ -7,7 +7,7 @@ use warnings;
 use Carp;
 use List::Util qw(all);
 use Iterator::Simple qw(igrep);
-use App::JsonLogUtils::Iter;
+use App::JsonLogUtils qw(lines json_log);
 
 sub new {
   my ($class, %param) = @_;
@@ -25,7 +25,7 @@ sub new {
 sub iter {
   my ($self, $path) = @_;
   croak 'expected file path or handle' unless $path;
-  igrep{ $self->match($_->[0]) } entries lines $path;
+  igrep{ $self->match($_->[0]) } json_log lines $path;
 }
 
 sub match {

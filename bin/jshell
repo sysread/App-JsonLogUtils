@@ -12,7 +12,7 @@ use Term::SimpleColor;
 use Term::SimpleColor qw(:background);
 use Term::ReadLine;
 use Iterator::Simple qw(iterator igrep imap);
-use App::JsonLogUtils::Iter;
+use App::JsonLogUtils qw(lines tail json_log);
 
 #-------------------------------------------------------------------------------
 # Parse command line options
@@ -157,8 +157,8 @@ sub cmd_reset {
 }
 
 sub cmd_cat {
-  my $path = shift;
-  my $entries = formatted filtered entries lines $path;
+  my $path    = shift;
+  my $entries = formatted filtered json_log lines $path;
 
   while (my $entry = <$entries>) {
     out $entry;
@@ -167,8 +167,8 @@ sub cmd_cat {
 }
 
 sub cmd_tail {
-  my $path = shift;
-  my $entries = formatted filtered ijson tail $path;
+  my $path    = shift;
+  my $entries = formatted filtered json_log tail $path;
 
   while (my $entry = <$entries>) {
     out $entry;

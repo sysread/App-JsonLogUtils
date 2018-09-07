@@ -6,8 +6,7 @@ use warnings;
 
 use Carp;
 use Iterator::Simple qw(iterator);
-use App::JsonLogUtils::Iter;
-use App::JsonLogUtils::Log;
+use App::JsonLogUtils qw(lines json_log);
 
 sub new {
   my ($class, %param) = @_;
@@ -19,7 +18,7 @@ sub new {
 
 sub iter {
   my ($self, $path) = @_;
-  my $lines = entries lines $path;
+  my $lines = json_log lines $path;
 
   iterator{
     while (my $entry = <$lines>) {

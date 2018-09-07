@@ -12,11 +12,33 @@ version 0.02
 
 =head1 SYNOPSIS
 
+  # From the command line
   tail -f /path/to/log/file.log \
     | jgrep -m message="some pattern" \
     | jcut -f "timestamp priority message" \
     | cols -c "timestamp priority message" -s '|' \
     | column -t -s '|'
+
+
+  # From code
+  use App::JsonLogUtils qw(tail json_log);
+
+  my $log = json_log tail '/path/to/file.log';
+
+  while (my $entry = <$log>) {
+    my ($json, $line) = @$entry;
+    ...
+  }
+
+
+  # Grepping JSON logs
+  use App::JsonLogUtils qw(lines json_log);
+  use Iterator::Simple qw(igrep imap);
+
+  my $entries = igrep{ $_->{foo} =~ /bar/ } # filter objects
+                imap{ $_->[0] }             # select the object
+                json_log                    # parse
+                lines '/path/to/file.log';  # read
 
 =head1 DESCRIPTION
 
@@ -25,7 +47,7 @@ readable. Wonderful. Unfortunately, it also makes it unfuriating to deal with
 them using the standard unix command line tools. This package provides a few
 tools to salve the burn.
 
-=head1 TOOLS
+=head1 COMMAND LINE TOOLS
 
 =head2 L<jgrep>
 
@@ -48,6 +70,46 @@ Display fields in a format suitable for C<column>.
 =head2 L<jshell>
 
 An interactive shell for monitoring JSON log files.
+
+=head1 EXPORTABLE ROUTINES
+
+=head1 lines
+
+Accepts a file path or opened file handle and returns an iterator which yields
+the chomped lines from the file.
+
+  my $log = lines '/path/to/file.log';
+
+  while (my $line = <$log>) {
+    ...
+  }
+
+=head1 tail
+
+Accepts a file path or opened file handle and returns an iterator while yields
+chomped lines from the file as they are appended, starting from the end of the
+file. Lines already written to the file when this routine is first called are
+ignored (that is, there is no equivalent to C<tail -c 10> at this time).
+
+  my $log = tail '/path/to/file.log';
+
+  while (my $line = <$log>) { # sleeps until lines appended to file
+    ...
+  }
+
+=head1 json_log
+
+Accepts a file iterator (see L</tail> and L</lines>) and returns an iterator
+yielding an array ref holding two items, a hash ref of the parsed JSON log
+entry, and the original log entry string. Empty lines are skipped with a
+warning. JSON decoding errors are ignored with a warning.
+
+  my $lines = json_log tail '/path/to/file.log';
+
+  while (my $entry = <$lines>) {
+    my ($object, $line) = @_;
+    ...
+  }
 
 =head1 SEE ALSO
 
