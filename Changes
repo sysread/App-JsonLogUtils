@@ -1,4 +1,6 @@
 {{$NEXT}}
+
+0.02 2018-09-07
 -moved script functionality into exported iterator routines
 -silenced warning in jshell when matching field not present in entry
 -more documentation, testing
