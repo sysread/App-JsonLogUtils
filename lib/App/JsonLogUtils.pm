@@ -385,10 +385,6 @@ sub json_grep ($$$) {
 
 =cut
 
-=head1 SEE ALSO
-
-=head2 L<App::JsonLogUtils::Iter>
-
 =head1 FUTURE PLANS
 
 None, but will happily consider requests and patches.
