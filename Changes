@@ -1,4 +1,5 @@
 {{$NEXT}}
+-set program name in command line utilities
 
 0.02 2018-09-07
 -moved script functionality into exported iterator routines
