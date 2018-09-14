@@ -90,7 +90,7 @@ sub _open {
   my $path = shift || return;
   return $path if ref $path;
 
-  open my $fh, '<', $path or do{
+  open(my $fh, '<', $path) || return do{
     log_warn $!;
     return;
   };
@@ -119,7 +119,7 @@ the chomped lines from the file.
 
 sub lines ($) {
   my $path = shift;
-  my $fh   = _open $path || return;
+  my $fh   = _open($path) || return iter([]);
   imap{ chomp $_; $_ } iter $fh;
 }
 
@@ -141,7 +141,7 @@ ignored (that is, there is no equivalent to C<tail -c 10> at this time).
 
 sub tail ($) {
   my $path = shift;
-  my $fh   = _open $path || return;
+  my $fh   = _open($path) || return iter([]);
   my $pos  = 0;
   my $stop = 0;
 
