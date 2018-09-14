@@ -1,4 +1,6 @@
 {{$NEXT}}
+
+0.03 2018-09-14
 -set program name in command line utilities
 -set default path with "jshell --path /path/to/log"
 
