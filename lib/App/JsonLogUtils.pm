@@ -34,7 +34,7 @@ package App::JsonLogUtils;
 =head1 DESCRIPTION
 
 Writing logs in JSON, one object per line, makes them very easily machine
-readable. Wonderful. Unfortunately, it also makes it unfuriating to deal with
+readable. Wonderful. Unfortunately, it also makes it infuriating to deal with
 them using the standard unix command line tools. This package provides a few
 tools to salve the burn.
 
